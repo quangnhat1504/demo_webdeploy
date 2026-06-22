@@ -1,6 +1,4 @@
 fastapi
 uvicorn
 httpx
-xmltodict
-yfinance
-pandas
+beautifulsoup4
