@@ -32,28 +32,33 @@ async def get_vn_gold():
                 
             rows = tbody.find_all('tr')
             
-            # Biến lưu trữ khu vực hiện tại để xử lý rowspan
             current_location = ""
             
             for row in rows:
-                # 1. Kiểm tra xem dòng này có chứa thẻ <th> (chứa tên khu vực) không
                 th = row.find('th')
                 if th:
-                    # Cập nhật khu vực mới
                     current_location = th.text.strip()
                 
-                # 2. Lấy các cột dữ liệu <td>
                 cols = row.find_all('td')
                 
-                # [Inference] Theo cấu trúc HTML trong ảnh, các dòng dữ liệu hợp lệ sẽ luôn có ít nhất 3 thẻ <td> 
-                # (Loại vàng, Mua vào, Bán ra), bất kể có thẻ <th> đi kèm hay không.
                 if len(cols) >= 3:
-                    gold_data.append({
-                        "khu_vuc": current_location,
-                        "loai_vang": cols[0].text.strip(),
-                        "mua_vao": cols[1].text.strip(),
-                        "ban_ra": cols[2].text.strip()
-                    })
+                    loai_vang = cols[0].text.strip()
+                    mua_vao = cols[1].text.strip()
+                    ban_ra = cols[2].text.strip()
+                    
+                    # DATA CLEANING: Loại bỏ các chuỗi watermark chống scraping
+                    # Xóa dấu chấm phân cách hàng nghìn và kiểm tra phần còn lại có phải là số (digit) hay không
+                    is_valid_mua = mua_vao.replace('.', '').isdigit()
+                    is_valid_ban = ban_ra.replace('.', '').isdigit()
+                    
+                    # Chỉ thêm vào kết quả nếu cả giá mua và giá bán đều là con số hợp lệ
+                    if is_valid_mua and is_valid_ban:
+                        gold_data.append({
+                            "khu_vuc": current_location,
+                            "loai_vang": loai_vang,
+                            "mua_vao": mua_vao,
+                            "ban_ra": ban_ra
+                        })
                     
             return {
                 "source": "webgia.com",
