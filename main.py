@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException
 from bs4 import BeautifulSoup
 import httpx
 import os
+import yfinance as yf
 
 app = FastAPI(title="Gold Price API")
 
@@ -67,3 +68,32 @@ async def get_vn_gold():
             
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Lỗi thu thập dữ liệu: {str(e)}")
+    
+    # 2. API lấy lịch sử giá vàng thế giới (theo số ngày)
+@app.get("/api/gold/history")
+def get_gold_history(days: int = 7):
+    if days > 365:
+        raise HTTPException(status_code=400, detail="Chỉ hỗ trợ lấy tối đa 365 ngày để tối ưu hiệu suất.")
+        
+    try:
+        # GC=F là mã giao dịch của Vàng trên Yahoo Finance
+        gold = yf.Ticker("GC=F")
+        hist = gold.history(period=f"{days}d")
+        
+        # Chuyển đổi dataframe của pandas thành dictionary (Ngày: Giá đóng cửa)
+        history_data = {
+            index.strftime('%Y-%m-%d'): round(row['Close'], 2)
+            for index, row in hist.iterrows()
+        }
+        
+        return {
+            "symbol": "GC=F (Gold Futures)",
+            "currency": "USD",
+            "history": history_data
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Lỗi khi lấy dữ liệu lịch sử: {str(e)}")
+if __name__ == "__main__":
+    port_number = int(os.environ.get("PORT", 8000))
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=port_number)
